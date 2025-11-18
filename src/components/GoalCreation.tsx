@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { UserProfile, GoalCategory, GoalProposal } from '../types';
 import { generateGoalProposals } from '../utils/openai';
 import { getQualificationGrade } from '../data/gradeMaster';
+import ChallengeGoalChat from './ChallengeGoalChat';
 
 interface GoalCreationProps {
   userProfile: UserProfile;
@@ -37,6 +38,7 @@ function GoalCreation({ userProfile }: GoalCreationProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedProposal, setSelectedProposal] = useState<GoalProposal | null>(null);
+  const [showChatDialog, setShowChatDialog] = useState(false);
 
   // 手動入力用のステート
   const [manualTitle, setManualTitle] = useState('');
@@ -153,23 +155,51 @@ function GoalCreation({ userProfile }: GoalCreationProps) {
           {/* AI提案生成 */}
           <div className="card">
             <h3 className="text-xl font-bold text-gray-900 mb-4">2. AIに目標を提案してもらう</h3>
-            <button
-              onClick={handleGenerateProposals}
-              disabled={isGenerating || !userProfile.jobDescription}
-              className="btn btn-primary w-full md:w-auto"
-            >
-              {isGenerating ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  AI提案を生成中...
+
+            {selectedCategory === 'challenge' && (
+              <div className="mb-4 p-4 bg-purple-50 border-2 border-purple-200 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <div className="text-purple-600 text-2xl">💬</div>
+                  <div className="flex-1">
+                    <h4 className="font-bold text-purple-900 mb-1">挑戦目標は対話形式がおすすめ！</h4>
+                    <p className="text-sm text-purple-800 mb-3">
+                      対話を通じて、あなたの状況や希望を深く理解し、段階的に最適な目標を一緒に作成します。
+                    </p>
+                    <button
+                      onClick={() => setShowChatDialog(true)}
+                      className="btn bg-purple-600 hover:bg-purple-700 text-white"
+                    >
+                      AI対話で挑戦目標を作成
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 mb-3">
+              <button
+                onClick={handleGenerateProposals}
+                disabled={isGenerating || !userProfile.jobDescription}
+                className="btn btn-primary w-full md:w-auto"
+              >
+                {isGenerating ? (
+                  <span className="flex items-center justify-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    AI提案を生成中...
+                  </span>
+                ) : (
+                  `${CATEGORY_INFO[selectedCategory].label}のAI提案を生成`
+                )}
+              </button>
+              {selectedCategory === 'challenge' && (
+                <span className="text-sm text-gray-500">
+                  （または上記の対話形式をお試しください）
                 </span>
-              ) : (
-                `${CATEGORY_INFO[selectedCategory].label}のAI提案を生成`
               )}
-            </button>
+            </div>
 
             {error && (
               <div className="mt-4 p-4 bg-danger-50 border border-danger-200 rounded-lg">
@@ -321,6 +351,14 @@ function GoalCreation({ userProfile }: GoalCreationProps) {
           </div>
         </div>
       </div>
+
+      {/* 対話型チャットダイアログ */}
+      {showChatDialog && (
+        <ChallengeGoalChat
+          userProfile={userProfile}
+          onClose={() => setShowChatDialog(false)}
+        />
+      )}
     </div>
   );
 }

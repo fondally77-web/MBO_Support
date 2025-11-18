@@ -23,3 +23,5 @@ export type {
   GoalProposal,
   ProposalHistory,
 } from './mbo';
+
+export type { ChatMessage } from '../utils/openai';
