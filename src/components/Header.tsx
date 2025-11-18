@@ -1,8 +1,11 @@
 import { UserProfile } from '../types';
 import { getQualificationGrade } from '../data/gradeMaster';
+import { Page } from '../App';
 
 interface HeaderProps {
   userProfile: UserProfile | null;
+  currentPage?: Page;
+  onPageChange?: (page: Page) => void;
 }
 
 const POSITION_LABELS: Record<string, string> = {
@@ -11,7 +14,7 @@ const POSITION_LABELS: Record<string, string> = {
   group_leader: 'グループリーダー',
 };
 
-function Header({ userProfile }: HeaderProps) {
+function Header({ userProfile, currentPage = 'dashboard', onPageChange }: HeaderProps) {
   const qualificationGrade = userProfile
     ? getQualificationGrade(userProfile.currentQualificationGrade)
     : null;
@@ -60,23 +63,38 @@ function Header({ userProfile }: HeaderProps) {
       </div>
 
       {/* ナビゲーションメニュー */}
-      {userProfile && (
+      {userProfile && onPageChange && (
         <nav className="bg-primary-800 bg-opacity-50 border-t border-primary-500">
           <div className="container mx-auto px-4">
             <div className="flex space-x-1">
-              <button className="px-4 py-2 text-sm font-medium text-white hover:bg-white hover:bg-opacity-10 transition-colors rounded-t-lg">
+              <button
+                onClick={() => onPageChange('dashboard')}
+                className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-lg ${
+                  currentPage === 'dashboard'
+                    ? 'text-white bg-white bg-opacity-10'
+                    : 'text-primary-100 hover:bg-white hover:bg-opacity-10 hover:text-white'
+                }`}
+              >
                 ダッシュボード
               </button>
-              <button className="px-4 py-2 text-sm font-medium text-primary-100 hover:bg-white hover:bg-opacity-10 hover:text-white transition-colors rounded-t-lg">
-                目標管理
+              <button
+                onClick={() => onPageChange('analyzer')}
+                className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-lg ${
+                  currentPage === 'analyzer'
+                    ? 'text-white bg-white bg-opacity-10'
+                    : 'text-primary-100 hover:bg-white hover:bg-opacity-10 hover:text-white'
+                }`}
+              >
+                AI目標アドバイザー
               </button>
-              <button className="px-4 py-2 text-sm font-medium text-primary-100 hover:bg-white hover:bg-opacity-10 hover:text-white transition-colors rounded-t-lg">
-                進捗確認
-              </button>
-              <button className="px-4 py-2 text-sm font-medium text-primary-100 hover:bg-white hover:bg-opacity-10 hover:text-white transition-colors rounded-t-lg">
-                評価記録
-              </button>
-              <button className="px-4 py-2 text-sm font-medium text-primary-100 hover:bg-white hover:bg-opacity-10 hover:text-white transition-colors rounded-t-lg ml-auto">
+              <button
+                onClick={() => onPageChange('settings')}
+                className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-lg ml-auto ${
+                  currentPage === 'settings'
+                    ? 'text-white bg-white bg-opacity-10'
+                    : 'text-primary-100 hover:bg-white hover:bg-opacity-10 hover:text-white'
+                }`}
+              >
                 設定
               </button>
             </div>
