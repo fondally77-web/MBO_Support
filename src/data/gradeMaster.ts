@@ -6,49 +6,57 @@ import { GradeLevel, QualificationGrade, RoleGrade } from '../types';
 export const QUALIFICATION_GRADES: Array<{
   code: QualificationGrade;
   name: string;
+  level: number;
   description: string;
   sortOrder: number;
 }> = [
   {
     code: 'TM1',
-    name: 'テクニカルメンバー1',
-    description: '基礎的な技術スキルを持つメンバー',
+    name: '一般職',
+    level: 1,
+    description: '定型反復業務処理。上位者の指示により業務を遂行し、基礎的なスキルを習得する段階',
     sortOrder: 1,
   },
   {
     code: 'TM2',
-    name: 'テクニカルメンバー2',
-    description: '自律的に業務遂行できるメンバー',
+    name: '上級一般職',
+    level: 2,
+    description: '複雑困難事項処理。自律的に業務を遂行し、一定の判断を伴う業務を担当',
     sortOrder: 2,
   },
   {
     code: 'L1',
-    name: 'リード1',
-    description: 'チーム内でリーダーシップを発揮できるメンバー',
+    name: '初級専門職',
+    level: 3,
+    description: '実務処理能力・後進指導。専門的知識を活かし、後輩の指導育成を行う',
     sortOrder: 3,
   },
   {
     code: 'L2',
-    name: 'リード2',
-    description: '複数プロジェクトをリードできるメンバー',
+    name: '中級専門職',
+    level: 4,
+    description: '企画判断力・専門知識技術活用。高度な専門知識を活用し、企画立案や判断を行う',
     sortOrder: 4,
   },
   {
     code: 'L3',
-    name: 'リード3',
-    description: '組織横断的なリーダーシップを持つメンバー',
+    name: '上級専門職',
+    level: 5,
+    description: '複雑困難業務遂行・実務統括。複雑困難な業務を統括し、組織横断的な課題解決を行う',
     sortOrder: 5,
   },
   {
     code: 'M',
-    name: 'マネージャー',
-    description: 'チームのマネジメントを担当',
+    name: '管理職',
+    level: 6,
+    description: '部署具体策企画立案・一般職指導育成。部署の具体的施策を企画立案し、メンバーの指導育成を担う',
     sortOrder: 6,
   },
   {
     code: 'SM',
-    name: 'シニアマネージャー',
-    description: '複数チームの統括マネジメントを担当',
+    name: '経営職',
+    level: 7,
+    description: '経営的視野・重要施策企画立案。経営的視野で重要施策を企画立案し、組織全体の方向性を決定',
     sortOrder: 7,
   },
 ];

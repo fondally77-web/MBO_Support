@@ -1,45 +1,15 @@
 import { UserProfile } from '../types';
-import { getGradeLevel } from '../data/gradeMaster';
-import { formatDateJP } from '../utils/dateUtils';
+import ProfileCard from './ProfileCard';
 
 interface DashboardProps {
   userProfile: UserProfile;
 }
 
 function Dashboard({ userProfile }: DashboardProps) {
-  const gradeLevel = getGradeLevel(
-    userProfile.currentQualificationGrade,
-    userProfile.currentRoleGrade
-  );
-
   return (
     <div className="space-y-6">
-      {/* ウェルカムセクション */}
-      <div className="card">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">
-          ようこそ、{userProfile.name}さん
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-primary-50 rounded-lg p-4">
-            <div className="text-sm text-primary-600 font-medium mb-1">資格等級</div>
-            <div className="text-xl font-bold text-primary-900">
-              {gradeLevel?.qualificationName}
-            </div>
-          </div>
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="text-sm text-gray-600 font-medium mb-1">役割等級</div>
-            <div className="text-xl font-bold text-gray-900">
-              {gradeLevel?.roleName}
-            </div>
-          </div>
-          <div className="bg-success-50 rounded-lg p-4">
-            <div className="text-sm text-success-600 font-medium mb-1">等級取得日</div>
-            <div className="text-lg font-bold text-success-900">
-              {formatDateJP(userProfile.gradeAcquiredDate)}
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* プロフィールカード */}
+      <ProfileCard userProfile={userProfile} />
 
       {/* 目標サマリー */}
       <div className="card">

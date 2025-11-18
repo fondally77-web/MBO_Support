@@ -105,6 +105,11 @@ export interface Evaluation {
 }
 
 /**
+ * ポジション（役職）
+ */
+export type Position = 'member' | 'team_leader' | 'group_leader';
+
+/**
  * ユーザープロフィール
  */
 export interface UserProfile {
@@ -112,10 +117,14 @@ export interface UserProfile {
   id: string;
   /** 名前 */
   name: string;
+  /** 部署 */
+  department: string;
   /** 現在の資格等級 */
   currentQualificationGrade: QualificationGrade;
   /** 現在の役割等級 */
   currentRoleGrade: RoleGrade;
+  /** ポジション（役職） */
+  position: Position;
   /** 等級取得日 */
   gradeAcquiredDate: Date;
   /** 作成日 */

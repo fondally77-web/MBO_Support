@@ -1,20 +1,29 @@
 import { useState } from 'react';
-import { UserProfile, QualificationGrade, RoleGrade } from '../types';
+import { UserProfile, QualificationGrade, RoleGrade, Position } from '../types';
 import { generateUserId } from '../utils/idGenerator';
 import {
   QUALIFICATION_GRADES,
   ROLE_GRADES,
-  getRoleGradesByQualification
+  getRoleGradesByQualification,
+  getQualificationGrade
 } from '../data/gradeMaster';
 
 interface ProfileSetupProps {
   onSave: (profile: UserProfile) => void;
 }
 
+const POSITIONS: Array<{ value: Position; label: string; description: string }> = [
+  { value: 'member', label: 'メンバー', description: '一般メンバーとして業務を遂行' },
+  { value: 'team_leader', label: 'チームリーダー', description: 'チームのリーダーとして小規模グループを統括' },
+  { value: 'group_leader', label: 'グループリーダー', description: 'グループリーダーとして複数チームを統括' },
+];
+
 function ProfileSetup({ onSave }: ProfileSetupProps) {
   const [name, setName] = useState('');
+  const [department, setDepartment] = useState('');
   const [qualificationGrade, setQualificationGrade] = useState<QualificationGrade>('TM1');
   const [roleGrade, setRoleGrade] = useState<RoleGrade>('TM1-1');
+  const [position, setPosition] = useState<Position>('member');
   const [gradeAcquiredDate, setGradeAcquiredDate] = useState(
     new Date().toISOString().split('T')[0]
   );
@@ -36,11 +45,18 @@ function ProfileSetup({ onSave }: ProfileSetupProps) {
       return;
     }
 
+    if (!department.trim()) {
+      alert('部署を入力してください');
+      return;
+    }
+
     const profile: UserProfile = {
       id: generateUserId(),
       name: name.trim(),
+      department: department.trim(),
       currentQualificationGrade: qualificationGrade,
       currentRoleGrade: roleGrade,
+      position,
       gradeAcquiredDate: new Date(gradeAcquiredDate),
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -54,32 +70,54 @@ function ProfileSetup({ onSave }: ProfileSetupProps) {
     (rg) => rg.qualificationGrade === qualificationGrade
   );
 
-  return (
-    <div className="max-w-2xl mx-auto">
-      <div className="card">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">
-          プロフィール設定
-        </h2>
-        <p className="text-gray-600 mb-8">
-          MBOシステムを始めるために、あなたの基本情報を入力してください。
-        </p>
+  // 選択中の資格等級情報
+  const selectedQualificationGrade = getQualificationGrade(qualificationGrade);
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* 名前 */}
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-              名前 <span className="text-danger-600">*</span>
-            </label>
-            <input
-              type="text"
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="input"
-              placeholder="山田 太郎"
-              required
-            />
-          </div>
+  return (
+    <div className="max-w-4xl mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* メインフォーム */}
+        <div className="lg:col-span-2">
+          <div className="card">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              プロフィール設定
+            </h2>
+            <p className="text-gray-600 mb-8">
+              MBOシステムを始めるために、あなたの基本情報を入力してください。
+            </p>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* 名前 */}
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                  名前 <span className="text-danger-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="input"
+                  placeholder="山田 太郎"
+                  required
+                />
+              </div>
+
+              {/* 部署 */}
+              <div>
+                <label htmlFor="department" className="block text-sm font-medium text-gray-700 mb-2">
+                  部署 <span className="text-danger-600">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="department"
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                  className="input"
+                  placeholder="開発部"
+                  required
+                />
+              </div>
 
           {/* 資格等級 */}
           <div>
@@ -127,28 +165,98 @@ function ProfileSetup({ onSave }: ProfileSetupProps) {
             </p>
           </div>
 
-          {/* 等級取得日 */}
-          <div>
-            <label htmlFor="gradeAcquiredDate" className="block text-sm font-medium text-gray-700 mb-2">
-              等級取得日 <span className="text-danger-600">*</span>
-            </label>
-            <input
-              type="date"
-              id="gradeAcquiredDate"
-              value={gradeAcquiredDate}
-              onChange={(e) => setGradeAcquiredDate(e.target.value)}
-              className="input"
-              required
-            />
-          </div>
+              {/* ポジション */}
+              <div>
+                <label htmlFor="position" className="block text-sm font-medium text-gray-700 mb-2">
+                  ポジション <span className="text-danger-600">*</span>
+                </label>
+                <select
+                  id="position"
+                  value={position}
+                  onChange={(e) => setPosition(e.target.value as Position)}
+                  className="input"
+                  required
+                >
+                  {POSITIONS.map((pos) => (
+                    <option key={pos.value} value={pos.value}>
+                      {pos.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-sm text-gray-500 mt-1">
+                  {POSITIONS.find(p => p.value === position)?.description}
+                </p>
+              </div>
 
-          {/* 送信ボタン */}
-          <div className="flex justify-end pt-4">
-            <button type="submit" className="btn btn-primary">
-              プロフィールを保存して開始
-            </button>
+              {/* 等級取得日 */}
+              <div>
+                <label htmlFor="gradeAcquiredDate" className="block text-sm font-medium text-gray-700 mb-2">
+                  等級取得日 <span className="text-danger-600">*</span>
+                </label>
+                <input
+                  type="date"
+                  id="gradeAcquiredDate"
+                  value={gradeAcquiredDate}
+                  onChange={(e) => setGradeAcquiredDate(e.target.value)}
+                  className="input"
+                  required
+                />
+              </div>
+
+              {/* 送信ボタン */}
+              <div className="flex justify-end pt-4">
+                <button type="submit" className="btn btn-primary">
+                  プロフィールを保存して開始
+                </button>
+              </div>
+            </form>
           </div>
-        </form>
+        </div>
+
+        {/* 等級別ガイダンス */}
+        <div className="lg:col-span-1">
+          <div className="card bg-primary-50 border-2 border-primary-200 sticky top-4">
+            <h3 className="text-lg font-bold text-primary-900 mb-4">
+              等級別ガイダンス
+            </h3>
+
+            {selectedQualificationGrade && (
+              <div className="space-y-4">
+                <div>
+                  <div className="text-sm font-medium text-primary-700 mb-1">
+                    選択中の等級
+                  </div>
+                  <div className="text-xl font-bold text-primary-900">
+                    {selectedQualificationGrade.name}
+                  </div>
+                  <div className="text-sm text-primary-600 mt-1">
+                    レベル {selectedQualificationGrade.level}
+                  </div>
+                </div>
+
+                <div className="border-t border-primary-200 pt-4">
+                  <div className="text-sm font-medium text-primary-700 mb-2">
+                    期待される役割
+                  </div>
+                  <div className="text-sm text-primary-900 leading-relaxed">
+                    {selectedQualificationGrade.description}
+                  </div>
+                </div>
+
+                <div className="border-t border-primary-200 pt-4">
+                  <div className="text-sm font-medium text-primary-700 mb-2">
+                    ヒント
+                  </div>
+                  <div className="text-xs text-primary-800 space-y-2">
+                    <p>• この等級に応じた目標を設定しましょう</p>
+                    <p>• 定期的に進捗を確認し、記録しましょう</p>
+                    <p>• 上位等級への成長を意識しましょう</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

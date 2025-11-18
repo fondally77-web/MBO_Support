@@ -16,5 +16,6 @@ export type {
   Objective,
   KeyResult,
   Evaluation,
+  Position,
   UserProfile,
 } from './mbo';
