@@ -3,6 +3,7 @@ import { UserProfile, GoalCategory, GoalProposal } from '../types';
 import { generateGoalProposals } from '../utils/openai';
 import { getQualificationGrade } from '../data/gradeMaster';
 import ChallengeGoalChat from './ChallengeGoalChat';
+import BusinessGoalChat from './BusinessGoalChat';
 
 interface GoalCreationProps {
   userProfile: UserProfile;
@@ -38,7 +39,7 @@ function GoalCreation({ userProfile }: GoalCreationProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedProposal, setSelectedProposal] = useState<GoalProposal | null>(null);
-  const [showChatDialog, setShowChatDialog] = useState(false);
+  const [showChatDialog, setShowChatDialog] = useState<'challenge' | 'business' | null>(null);
 
   // 手動入力用のステート
   const [manualTitle, setManualTitle] = useState('');
@@ -166,10 +167,30 @@ function GoalCreation({ userProfile }: GoalCreationProps) {
                       対話を通じて、あなたの状況や希望を深く理解し、段階的に最適な目標を一緒に作成します。
                     </p>
                     <button
-                      onClick={() => setShowChatDialog(true)}
+                      onClick={() => setShowChatDialog('challenge')}
                       className="btn bg-purple-600 hover:bg-purple-700 text-white"
                     >
                       AI対話で挑戦目標を作成
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {selectedCategory === 'business' && (
+              <div className="mb-4 p-4 bg-blue-50 border-2 border-blue-200 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <div className="text-blue-600 text-2xl">💬</div>
+                  <div className="flex-1">
+                    <h4 className="font-bold text-blue-900 mb-1">業務目標は対話形式で詳細化！</h4>
+                    <p className="text-sm text-blue-800 mb-3">
+                      段階的な質問（最大9個）で不明点を解消し、組織目標に貢献する測定可能な目標を一緒に作成します。
+                    </p>
+                    <button
+                      onClick={() => setShowChatDialog('business')}
+                      className="btn bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      AI対話で業務目標を作成
                     </button>
                   </div>
                 </div>
@@ -194,7 +215,7 @@ function GoalCreation({ userProfile }: GoalCreationProps) {
                   `${CATEGORY_INFO[selectedCategory].label}のAI提案を生成`
                 )}
               </button>
-              {selectedCategory === 'challenge' && (
+              {(selectedCategory === 'challenge' || selectedCategory === 'business') && (
                 <span className="text-sm text-gray-500">
                   （または上記の対話形式をお試しください）
                 </span>
@@ -353,10 +374,16 @@ function GoalCreation({ userProfile }: GoalCreationProps) {
       </div>
 
       {/* 対話型チャットダイアログ */}
-      {showChatDialog && (
+      {showChatDialog === 'challenge' && (
         <ChallengeGoalChat
           userProfile={userProfile}
-          onClose={() => setShowChatDialog(false)}
+          onClose={() => setShowChatDialog(null)}
+        />
+      )}
+      {showChatDialog === 'business' && (
+        <BusinessGoalChat
+          userProfile={userProfile}
+          onClose={() => setShowChatDialog(null)}
         />
       )}
     </div>

@@ -580,3 +580,135 @@ export const chatWithChallengeAssistant = async (
     throw new Error('AIチャット中に不明なエラーが発生しました');
   }
 };
+
+/**
+ * 業務目標作成のための対話型アシスタント
+ */
+const BUSINESS_GOAL_SYSTEM_PROMPT = `# MBO業務目標作成支援AI
+
+あなたはMBO（目標管理制度）の業務目標作成を支援する専門アシスタントです。
+
+## 基本方針
+1. **段階的な情報収集**：一度に3つまでの質問で、必要な情報を丁寧に収集する
+2. **不明点の優先的解決**：具体的な目標案を提示する前に、すべての不明点を明確にする
+3. **ユーザー主導**：ユーザーが「具体例は作成しないでください」と指示した場合は従う
+4. **柔軟な調整**：提示後もユーザーの要望に応じて柔軟に修正・統合・フォーマット変更を行う
+
+## 情報収集プロセス
+
+### フェーズ1：基本情報の把握（最初の3つの質問）
+ユーザーから以下の初期情報を受け取った後、以下を確認：
+1. **優先順位と進捗状況**：注力すべき業務と現在の進捗
+2. **組織目標との紐づけ**：どの組織目標に最も貢献するか
+3. **定量的な成果指標**：どのような数値目標を設定したいか
+
+### フェーズ2：詳細の明確化（次の3つの質問）
+フェーズ1の回答を踏まえ、以下を深堀り：
+4. **目標範囲の確定**：削減時間や成果の対象範囲
+5. **役割の明確化**：他メンバーとの分担における自身の役割
+6. **追加指標の確認**：定量目標以外の測定すべき指標
+
+### フェーズ3：計算方法の確定（必要に応じた追加質問）
+数値目標がある場合、以下を確認：
+7. **算出方法**：削減率や達成率の計算ロジック
+8. **組織目標への貢献の測り方**：定性的な目標の定量化
+9. **期限の確認**：目標達成の具体的な期日
+
+## 目標案作成のルール
+
+### 構成要素
+各目標には以下を含める：
+- **目標タイトル**：簡潔で具体的
+- **【組織目標への貢献】**：該当する組織目標を明記
+- **目標内容**：具体的な行動と期待される成果
+- **【役割】**：他メンバーと被る場合は明記（前提条件として指定された場合）
+- **達成基準**：定量的かつ測定可能な基準を箇条書き
+
+### フォーマット
+- 目標は複数設定可能（通常2-3個）
+- ユーザーからの統合・分割要望には柔軟に対応
+- 表形式や箇条書きなど、読みやすい形式を使用
+
+## 追加支援機能
+
+目標案提示後、以下の支援も提供：
+1. **達成度評価基準**：100%、100%+αの基準設定
+2. **月次プロセス**：目標達成に向けた具体的な行動計画
+3. **フォーマット調整**：1行要約、表形式への変換など
+
+## 注意事項
+- ユーザーが「分からない」と回答した場合、無理に指標を設定せず、現実的な代替案を提示
+- 定量目標が設定できない場合は、定性的な達成基準も許容
+- 常にユーザーの業務レベル（TM2、レベルⅨなど）を考慮した現実的な目標を提案
+- 前提条件（「他の方と被っている内容は役割を明記」など）が指定された場合は必ず守る
+
+## 対話例の流れ
+1. ユーザーから初期情報（業務内容、組織目標、レベル感など）を受領
+2. 3つの質問で基本情報を収集
+3. ユーザーの回答に基づき、さらに3つの質問で詳細を確定
+4. 必要に応じて追加質問（3つまで）
+5. すべての不明点が解消されたら、具体的なMBO目標案を提示
+6. ユーザーの修正要望に応じて調整
+7. 達成度基準や月次プロセスなどの追加支援を提供
+
+## 禁止事項
+- 不明点が残っているのに具体例を作成すること
+- 一度に4つ以上の質問をすること
+- ユーザーが「具体例は作成しないで」と指示しているのに作成すること
+- 抽象的で測定不可能な達成基準を設定すること`;
+
+export const chatWithBusinessAssistant = async (
+  messages: ChatMessage[],
+  userProfile: UserProfile
+): Promise<string> => {
+  const apiKey = getOpenAIKey();
+  if (!apiKey) {
+    throw new Error('OpenAI APIキーが設定されていません。');
+  }
+
+  const gradeInfo = getQualificationGrade(userProfile.currentQualificationGrade);
+
+  // システムプロンプトにユーザー情報を追加
+  const systemPrompt = `${BUSINESS_GOAL_SYSTEM_PROMPT}
+
+# ユーザー情報
+- 資格等級: ${gradeInfo.name} (${userProfile.currentQualificationGrade})
+- 等級レベル: ${gradeInfo.level}
+- 役割等級: ${userProfile.currentRoleGrade}
+- 部署: ${userProfile.department}
+- ポジション: ${userProfile.position}
+- 仕事内容: ${userProfile.jobDescription || '未入力'}
+
+この情報を踏まえて、ユーザーの等級に適した業務目標を一緒に作成してください。`;
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...messages,
+        ],
+        temperature: 0.7,
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`AIチャットエラー: ${error.message}`);
+    }
+    throw new Error('AIチャット中に不明なエラーが発生しました');
+  }
+};
