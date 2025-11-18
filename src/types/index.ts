@@ -18,4 +18,8 @@ export type {
   Evaluation,
   Position,
   UserProfile,
+  GoalCategory,
+  GoalDifficulty,
+  GoalProposal,
+  ProposalHistory,
 } from './mbo';

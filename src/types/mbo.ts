@@ -125,10 +125,66 @@ export interface UserProfile {
   currentRoleGrade: RoleGrade;
   /** ポジション（役職） */
   position: Position;
+  /** 仕事内容 */
+  jobDescription?: string;
   /** 等級取得日 */
   gradeAcquiredDate: Date;
   /** 作成日 */
   createdAt: Date;
   /** 更新日 */
   updatedAt: Date;
+}
+
+/**
+ * 目標カテゴリ
+ */
+export type GoalCategory = 'challenge' | 'business' | 'personal';
+
+/**
+ * 目標難易度
+ */
+export type GoalDifficulty = 'basic' | 'intermediate' | 'advanced';
+
+/**
+ * AI提案目標
+ */
+export interface GoalProposal {
+  /** 提案ID */
+  id: string;
+  /** 目標タイトル */
+  title: string;
+  /** 目標説明 */
+  description: string;
+  /** 達成基準（100%） */
+  criteria100: string;
+  /** 達成基準（110%） */
+  criteria110: string;
+  /** 推奨期限 */
+  deadline: string;
+  /** 難易度 */
+  difficulty: GoalDifficulty;
+  /** 提案理由 */
+  reason: string;
+  /** カテゴリ */
+  category: GoalCategory;
+}
+
+/**
+ * 提案履歴
+ */
+export interface ProposalHistory {
+  /** 履歴ID */
+  id: string;
+  /** タイムスタンプ */
+  timestamp: string;
+  /** カテゴリ */
+  category: GoalCategory;
+  /** 提案目標リスト */
+  proposals: GoalProposal[];
+  /** ユーザー情報（提案時点） */
+  userProfile: {
+    qualificationGrade: QualificationGrade;
+    roleGrade: RoleGrade;
+    jobDescription: string;
+  };
 }

@@ -24,6 +24,7 @@ function ProfileSetup({ onSave }: ProfileSetupProps) {
   const [qualificationGrade, setQualificationGrade] = useState<QualificationGrade>('TM1');
   const [roleGrade, setRoleGrade] = useState<RoleGrade>('TM1-1');
   const [position, setPosition] = useState<Position>('member');
+  const [jobDescription, setJobDescription] = useState('');
   const [gradeAcquiredDate, setGradeAcquiredDate] = useState(
     new Date().toISOString().split('T')[0]
   );
@@ -57,6 +58,7 @@ function ProfileSetup({ onSave }: ProfileSetupProps) {
       currentQualificationGrade: qualificationGrade,
       currentRoleGrade: roleGrade,
       position,
+      jobDescription: jobDescription.trim() || undefined,
       gradeAcquiredDate: new Date(gradeAcquiredDate),
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -117,6 +119,30 @@ function ProfileSetup({ onSave }: ProfileSetupProps) {
                   placeholder="開発部"
                   required
                 />
+              </div>
+
+              {/* 仕事内容 */}
+              <div>
+                <label htmlFor="jobDescription" className="block text-sm font-medium text-gray-700 mb-2">
+                  仕事内容
+                </label>
+                <textarea
+                  id="jobDescription"
+                  value={jobDescription}
+                  onChange={(e) => setJobDescription(e.target.value)}
+                  className="input"
+                  rows={4}
+                  maxLength={300}
+                  placeholder="担当業務、使用技術、日常的なタスクなどを具体的に記入してください（AI目標提案機能で活用されます）"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {jobDescription.length}/300文字（任意）
+                  {jobDescription.length > 0 && (
+                    <span className="ml-2 text-primary-600">
+                      ✓ AI目標提案機能が利用可能になります
+                    </span>
+                  )}
+                </p>
               </div>
 
           {/* 資格等級 */}

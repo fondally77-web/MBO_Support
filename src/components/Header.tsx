@@ -78,6 +78,16 @@ function Header({ userProfile, currentPage = 'dashboard', onPageChange }: Header
                 ダッシュボード
               </button>
               <button
+                onClick={() => onPageChange('goal-creation')}
+                className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-lg ${
+                  currentPage === 'goal-creation'
+                    ? 'text-white bg-white bg-opacity-10'
+                    : 'text-primary-100 hover:bg-white hover:bg-opacity-10 hover:text-white'
+                }`}
+              >
+                目標作成
+              </button>
+              <button
                 onClick={() => onPageChange('analyzer')}
                 className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-lg ${
                   currentPage === 'analyzer'
@@ -86,6 +96,16 @@ function Header({ userProfile, currentPage = 'dashboard', onPageChange }: Header
                 }`}
               >
                 AI目標アドバイザー
+              </button>
+              <button
+                onClick={() => onPageChange('proposal-history')}
+                className={`px-4 py-2 text-sm font-medium transition-colors rounded-t-lg ${
+                  currentPage === 'proposal-history'
+                    ? 'text-white bg-white bg-opacity-10'
+                    : 'text-primary-100 hover:bg-white hover:bg-opacity-10 hover:text-white'
+                }`}
+              >
+                提案履歴
               </button>
               <button
                 onClick={() => onPageChange('settings')}

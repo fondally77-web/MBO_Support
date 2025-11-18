@@ -3,11 +3,13 @@ import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import ProfileSetup from './components/ProfileSetup';
 import ObjectiveAnalyzer from './components/ObjectiveAnalyzer';
+import GoalCreation from './components/GoalCreation';
+import ProposalHistory from './components/ProposalHistory';
 import Settings from './components/Settings';
 import { UserProfile } from './types';
 import { loadFromLocalStorage, saveToLocalStorage, STORAGE_KEYS } from './utils/localStorage';
 
-export type Page = 'dashboard' | 'analyzer' | 'settings';
+export type Page = 'dashboard' | 'analyzer' | 'goal-creation' | 'proposal-history' | 'settings';
 
 function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -60,6 +62,8 @@ function App() {
           <>
             {currentPage === 'dashboard' && <Dashboard userProfile={userProfile} />}
             {currentPage === 'analyzer' && <ObjectiveAnalyzer userProfile={userProfile} />}
+            {currentPage === 'goal-creation' && <GoalCreation userProfile={userProfile} />}
+            {currentPage === 'proposal-history' && <ProposalHistory />}
             {currentPage === 'settings' && (
               <Settings userProfile={userProfile} onProfileUpdate={handleProfileUpdate} />
             )}

@@ -1,5 +1,6 @@
-import { QualificationGrade } from '../types';
+import { QualificationGrade, UserProfile, GoalCategory, GoalProposal } from '../types';
 import { getQualificationGrade } from '../data/gradeMaster';
+import { generateId } from './idGenerator';
 
 /**
  * 目標分析リクエスト
@@ -197,5 +198,156 @@ export const validateOpenAIKey = async (apiKey: string): Promise<boolean> => {
     return response.ok;
   } catch (error) {
     return false;
+  }
+};
+
+/**
+ * AI目標提案を生成
+ */
+export const generateGoalProposals = async (
+  category: GoalCategory,
+  userProfile: UserProfile
+): Promise<GoalProposal[]> => {
+  const apiKey = getOpenAIKey();
+
+  if (!apiKey) {
+    throw new Error('OpenAI APIキーが設定されていません。設定画面でAPIキーを設定してください。');
+  }
+
+  const gradeInfo = getQualificationGrade(userProfile.currentQualificationGrade);
+
+  if (!gradeInfo) {
+    throw new Error('等級情報が見つかりません');
+  }
+
+  const categoryLabels: Record<GoalCategory, string> = {
+    challenge: '挑戦目標: 新たな価値創出、個人・組織の成長に繋がる目標',
+    business: '業務目標: 担当業務の品質・効率向上、成果達成に関する目標',
+    personal: '人財目標: スキル習得、チームワーク、人材育成に関する目標',
+  };
+
+  const getLevelGuidance = (level: number): string => {
+    if (level <= 2) {
+      return 'TM1-TM2レベル: 個人業務の改善、基本スキルの習得、上位者の指示のもとでの業務遂行';
+    } else if (level <= 4) {
+      return 'L1-L2レベル: チーム貢献、専門性の向上、後輩指導、一定の裁量を持った業務遂行';
+    } else if (level <= 5) {
+      return 'L3レベル: 部門改革、組織力向上、複雑困難業務の統括';
+    } else if (level === 6) {
+      return 'Mレベル: 部署の具体策企画立案、一般職の指導育成、マネジメント業務';
+    } else {
+      return 'SMレベル: 経営革新、戦略実現、組織変革、重要施策の企画立案';
+    }
+  };
+
+  // 6ヶ月後の日付を計算
+  const deadline = new Date();
+  deadline.setMonth(deadline.getMonth() + 6);
+  const deadlineStr = deadline.toISOString().split('T')[0];
+
+  const systemPrompt = `あなたは人事評価とキャリア開発の専門家です。
+ユーザーの仕事内容と等級情報を基に、適切なMBO目標を3-5件提案してください。
+
+## 出力形式
+JSON配列で3-5件の目標を提案してください。各目標には以下を含めてください：
+[
+  {
+    "title": "目標タイトル（30文字以内、簡潔に）",
+    "description": "目標の詳細説明（100文字程度、具体的に）",
+    "criteria100": "達成度100%の具体的な基準（測定可能な指標を含む）",
+    "criteria110": "達成度110%の具体的な基準（より高い目標を示す）",
+    "difficulty": "basic/intermediate/advanced",
+    "reason": "なぜこの目標が適切かの説明（50文字程度）"
+  }
+]
+
+## 重要な原則
+1. 仕事内容に直接関連した実現可能な目標を提案
+2. 等級レベルに適した難易度と影響範囲を設定
+3. 測定可能で具体的な基準を明記
+4. SMART原則（具体的、測定可能、達成可能、関連性、期限）を意識
+5. 次の等級への成長を意識した目標を含める`;
+
+  const userPrompt = `以下の情報を基に、適切なMBO目標を3-5件提案してください。
+
+【ユーザー情報】
+- 資格等級: ${gradeInfo.name} (${userProfile.currentQualificationGrade})
+- 等級レベル: ${gradeInfo.level}
+- 役割等級: ${userProfile.currentRoleGrade}
+- 部署: ${userProfile.department}
+- ポジション: ${userProfile.position}
+- 仕事内容: ${userProfile.jobDescription || '未入力'}
+
+【目標カテゴリ】
+${categoryLabels[category]}
+
+【等級別の期待レベル】
+${getLevelGuidance(gradeInfo.level)}
+期待される役割: ${gradeInfo.description}
+
+【推奨期限】
+${deadlineStr}（6ヶ月後）
+
+上記の情報を基に、ユーザーの成長と組織への貢献に繋がる適切な目標を提案してください。`;
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.8,
+        max_tokens: 3000,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        `OpenAI API Error: ${errorData.error?.message || response.statusText}`
+      );
+    }
+
+    const data = await response.json();
+    const content = data.choices[0].message.content;
+    const parsedContent = JSON.parse(content);
+
+    // レスポンスが配列かオブジェクトか判定
+    const proposalsArray = Array.isArray(parsedContent) ? parsedContent : parsedContent.proposals || [];
+
+    // GoalProposalオブジェクトに変換
+    const proposals: GoalProposal[] = proposalsArray.map((item: {
+      title: string;
+      description: string;
+      criteria100: string;
+      criteria110: string;
+      difficulty: string;
+      reason: string;
+    }) => ({
+      id: generateId(),
+      title: item.title,
+      description: item.description,
+      criteria100: item.criteria100,
+      criteria110: item.criteria110,
+      deadline: deadlineStr,
+      difficulty: item.difficulty as 'basic' | 'intermediate' | 'advanced',
+      reason: item.reason,
+      category,
+    }));
+
+    return proposals;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`AI目標提案エラー: ${error.message}`);
+    }
+    throw new Error('AI目標提案中に不明なエラーが発生しました');
   }
 };
