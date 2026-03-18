@@ -21,7 +21,7 @@ interface SettingsProps {
   onProfileUpdate: () => void;
 }
 
-function Settings({ userProfile, onProfileUpdate }: SettingsProps) {
+function Settings(_props: SettingsProps) {
   const [apiKey, setApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
   const [isValidating, setIsValidating] = useState(false);

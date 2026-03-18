@@ -535,6 +535,9 @@ export const chatWithChallengeAssistant = async (
   }
 
   const gradeInfo = getQualificationGrade(userProfile.currentQualificationGrade);
+  if (!gradeInfo) {
+    throw new Error('資格等級情報が見つかりません');
+  }
 
   // システムプロンプトにユーザー情報を追加
   const systemPrompt = `${CHALLENGE_GOAL_SYSTEM_PROMPT}
@@ -667,6 +670,9 @@ export const chatWithBusinessAssistant = async (
   }
 
   const gradeInfo = getQualificationGrade(userProfile.currentQualificationGrade);
+  if (!gradeInfo) {
+    throw new Error('資格等級情報が見つかりません');
+  }
 
   // システムプロンプトにユーザー情報を追加
   const systemPrompt = `${BUSINESS_GOAL_SYSTEM_PROMPT}
@@ -877,6 +883,9 @@ export const chatWithPersonalAssistant = async (
   }
 
   const gradeInfo = getQualificationGrade(userProfile.currentQualificationGrade);
+  if (!gradeInfo) {
+    throw new Error('資格等級情報が見つかりません');
+  }
 
   // システムプロンプトにユーザー情報を追加
   const systemPrompt = `${PERSONAL_GOAL_SYSTEM_PROMPT}

@@ -12,6 +12,7 @@ export interface ExportData {
   objectives: unknown[];
   evaluations: unknown[];
   gradeHistory: unknown[];
+  proposalHistories: unknown[];
 }
 
 /**
@@ -22,6 +23,7 @@ export const exportAllData = (): ExportData => {
   const objectives = loadFromLocalStorage<unknown[]>(STORAGE_KEYS.OBJECTIVES) || [];
   const evaluations = loadFromLocalStorage<unknown[]>(STORAGE_KEYS.EVALUATIONS) || [];
   const gradeHistory = loadFromLocalStorage<unknown[]>(STORAGE_KEYS.GRADE_HISTORY) || [];
+  const proposalHistories = loadFromLocalStorage<unknown[]>(STORAGE_KEYS.PROPOSAL_HISTORIES) || [];
 
   return {
     version: '1.0.0',
@@ -30,6 +32,7 @@ export const exportAllData = (): ExportData => {
     objectives,
     evaluations,
     gradeHistory,
+    proposalHistories,
   };
 };
 
@@ -100,6 +103,10 @@ export const saveImportedData = (data: ExportData): void => {
 
   if (data.gradeHistory && Array.isArray(data.gradeHistory)) {
     saveToLocalStorage(STORAGE_KEYS.GRADE_HISTORY, data.gradeHistory);
+  }
+
+  if (data.proposalHistories && Array.isArray(data.proposalHistories)) {
+    saveToLocalStorage(STORAGE_KEYS.PROPOSAL_HISTORIES, data.proposalHistories);
   }
 };
 

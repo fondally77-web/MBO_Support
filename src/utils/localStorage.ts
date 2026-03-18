@@ -13,6 +13,7 @@ export const STORAGE_KEYS = {
   OBJECTIVES: `${STORAGE_PREFIX}objectives`,
   EVALUATIONS: `${STORAGE_PREFIX}evaluations`,
   GRADE_HISTORY: `${STORAGE_PREFIX}grade_history`,
+  PROPOSAL_HISTORIES: `${STORAGE_PREFIX}proposal_histories`,
 } as const;
 
 /**
