@@ -11,6 +11,7 @@ const STORAGE_PREFIX = 'mbo_';
 export const STORAGE_KEYS = {
   USER_PROFILE: `${STORAGE_PREFIX}user_profile`,
   OBJECTIVES: `${STORAGE_PREFIX}objectives`,
+  OBJECTIVE_TASKS: `${STORAGE_PREFIX}objective_tasks`,
   EVALUATIONS: `${STORAGE_PREFIX}evaluations`,
   GRADE_HISTORY: `${STORAGE_PREFIX}grade_history`,
   PROPOSAL_HISTORIES: `${STORAGE_PREFIX}proposal_histories`,

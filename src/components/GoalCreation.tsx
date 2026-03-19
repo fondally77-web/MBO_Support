@@ -1,13 +1,19 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import {
   GoalCategory,
   GoalProposal,
   Objective,
+  ObjectiveTask,
   ProposalHistory,
   UserProfile,
 } from '../types';
 import { getQualificationGrade } from '../data/gradeMaster';
-import { generateId, generateKeyResultId, generateObjectiveId } from '../utils/idGenerator';
+import {
+  generateId,
+  generateKeyResultId,
+  generateObjectiveId,
+  generateObjectiveTaskId,
+} from '../utils/idGenerator';
 import { loadFromLocalStorage, saveToLocalStorage, STORAGE_KEYS } from '../utils/localStorage';
 import { generateGoalProposals } from '../utils/openai';
 import BusinessGoalChat from './BusinessGoalChat';
@@ -45,6 +51,60 @@ const DIFFICULTY_INFO: Record<string, { label: string; color: string }> = {
   advanced: { label: '挑戦', color: 'bg-purple-100 text-purple-800 border-purple-200' },
 };
 
+const TASK_STATUS_LABELS: Record<ObjectiveTask['status'], string> = {
+  todo: '未着手',
+  doing: '進行中',
+  done: '完了',
+  skipped: '見送り',
+};
+
+const TASK_STATUS_CLASS: Record<ObjectiveTask['status'], string> = {
+  todo: 'bg-gray-100 text-gray-700',
+  doing: 'bg-primary-100 text-primary-700',
+  done: 'bg-success-100 text-success-700',
+  skipped: 'bg-yellow-100 text-yellow-700',
+};
+
+const TASK_PRIORITY_LABELS: Record<ObjectiveTask['priority'], string> = {
+  high: '高',
+  medium: '中',
+  low: '低',
+};
+
+const reviveObjective = (objective: Objective): Objective => ({
+  ...objective,
+  createdAt: new Date(objective.createdAt),
+  updatedAt: new Date(objective.updatedAt),
+  period: {
+    startDate: new Date(objective.period.startDate),
+    endDate: new Date(objective.period.endDate),
+  },
+  keyResults: objective.keyResults.map((keyResult) => ({
+    ...keyResult,
+    createdAt: new Date(keyResult.createdAt),
+    updatedAt: new Date(keyResult.updatedAt),
+  })),
+});
+
+const reviveTask = (task: ObjectiveTask): ObjectiveTask => ({
+  ...task,
+  dueDate: task.dueDate ? new Date(task.dueDate) : undefined,
+  createdAt: new Date(task.createdAt),
+  updatedAt: new Date(task.updatedAt),
+});
+
+const formatDate = (date?: Date) => {
+  if (!date || Number.isNaN(date.getTime())) {
+    return '未設定';
+  }
+
+  return new Intl.DateTimeFormat('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+};
+
 function GoalCreation({ userProfile }: GoalCreationProps) {
   const [selectedCategory, setSelectedCategory] =
     useState<GoalCategory>('business');
@@ -64,7 +124,49 @@ function GoalCreation({ userProfile }: GoalCreationProps) {
   const [manualCriteria110, setManualCriteria110] = useState('');
   const [manualDeadline, setManualDeadline] = useState('');
 
+  const [objectives, setObjectives] = useState<Objective[]>([]);
+  const [tasks, setTasks] = useState<ObjectiveTask[]>([]);
+  const [selectedObjectiveId, setSelectedObjectiveId] = useState<string>('');
+  const [taskTitle, setTaskTitle] = useState('');
+  const [taskDescription, setTaskDescription] = useState('');
+  const [taskDueDate, setTaskDueDate] = useState('');
+  const [taskPriority, setTaskPriority] = useState<ObjectiveTask['priority']>('medium');
+
   const gradeInfo = getQualificationGrade(userProfile.currentQualificationGrade);
+
+  useEffect(() => {
+    const storedObjectives = loadFromLocalStorage<Objective[]>(STORAGE_KEYS.OBJECTIVES) || [];
+    const storedTasks = loadFromLocalStorage<ObjectiveTask[]>(STORAGE_KEYS.OBJECTIVE_TASKS) || [];
+
+    const revivedObjectives = storedObjectives.map(reviveObjective);
+    const revivedTasks = storedTasks.map(reviveTask);
+
+    setObjectives(revivedObjectives);
+    setTasks(revivedTasks);
+
+    if (revivedObjectives.length > 0) {
+      setSelectedObjectiveId((current) => current || revivedObjectives[0].id);
+    }
+  }, []);
+
+  const selectedObjective = useMemo(
+    () => objectives.find((objective) => objective.id === selectedObjectiveId) || null,
+    [objectives, selectedObjectiveId]
+  );
+
+  const selectedObjectiveTasks = useMemo(() => {
+    return tasks
+      .filter((task) => task.objectiveId === selectedObjectiveId)
+      .sort((a, b) => a.order - b.order || b.updatedAt.getTime() - a.updatedAt.getTime());
+  }, [tasks, selectedObjectiveId]);
+
+  const selectedObjectiveTaskSummary = useMemo(() => {
+    const total = selectedObjectiveTasks.length;
+    const done = selectedObjectiveTasks.filter((task) => task.status === 'done').length;
+    const percent = total === 0 ? 0 : Math.round((done / total) * 100);
+
+    return { total, done, percent };
+  }, [selectedObjectiveTasks]);
 
   const resetManualForm = () => {
     setManualTitle('');
@@ -73,6 +175,13 @@ function GoalCreation({ userProfile }: GoalCreationProps) {
     setManualCriteria110('');
     setManualDeadline('');
     setSelectedProposal(null);
+  };
+
+  const resetTaskForm = () => {
+    setTaskTitle('');
+    setTaskDescription('');
+    setTaskDueDate('');
+    setTaskPriority('medium');
   };
 
   const saveProposalHistory = (generatedProposals: GoalProposal[]) => {
@@ -151,7 +260,7 @@ function GoalCreation({ userProfile }: GoalCreationProps) {
 
     try {
       const now = new Date();
-      const objectives =
+      const currentObjectives =
         loadFromLocalStorage<Objective[]>(STORAGE_KEYS.OBJECTIVES) || [];
 
       const objective: Objective = {
@@ -200,9 +309,12 @@ function GoalCreation({ userProfile }: GoalCreationProps) {
         updatedAt: now,
       };
 
-      saveToLocalStorage(STORAGE_KEYS.OBJECTIVES, [objective, ...objectives]);
+      const updatedObjectives = [objective, ...currentObjectives];
+      saveToLocalStorage(STORAGE_KEYS.OBJECTIVES, updatedObjectives);
+      setObjectives(updatedObjectives.map(reviveObjective));
+      setSelectedObjectiveId(objective.id);
       resetManualForm();
-      setSaveMessage('目標を保存しました。');
+      setSaveMessage('目標を保存しました。続けて実行タスクを追加できます。');
     } catch (saveError) {
       setError(
         saveError instanceof Error
@@ -210,6 +322,73 @@ function GoalCreation({ userProfile }: GoalCreationProps) {
           : '目標の保存に失敗しました。'
       );
     }
+  };
+
+  const handleSaveTask = (event: FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    setSaveMessage(null);
+
+    if (!selectedObjectiveId) {
+      setError('先に対象の大目標を選択してください。');
+      return;
+    }
+
+    if (!taskTitle.trim()) {
+      setError('タスク名を入力してください。');
+      return;
+    }
+
+    try {
+      const now = new Date();
+      const currentTasks =
+        loadFromLocalStorage<ObjectiveTask[]>(STORAGE_KEYS.OBJECTIVE_TASKS) || [];
+      const taskCount = currentTasks.filter((task) => task.objectiveId === selectedObjectiveId).length;
+
+      const task: ObjectiveTask = {
+        id: generateObjectiveTaskId(),
+        objectiveId: selectedObjectiveId,
+        title: taskTitle.trim(),
+        description: taskDescription.trim() || undefined,
+        status: 'todo',
+        priority: taskPriority,
+        dueDate: taskDueDate ? new Date(taskDueDate) : undefined,
+        order: taskCount + 1,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      const updatedTasks = [task, ...currentTasks];
+      saveToLocalStorage(STORAGE_KEYS.OBJECTIVE_TASKS, updatedTasks);
+      setTasks(updatedTasks.map(reviveTask));
+      resetTaskForm();
+      setSaveMessage('実行タスクを保存しました。');
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : 'タスクの保存に失敗しました。'
+      );
+    }
+  };
+
+  const handleToggleTaskStatus = (taskId: string) => {
+    const updatedTasks: ObjectiveTask[] = tasks.map((task) => {
+      if (task.id !== taskId) {
+        return task;
+      }
+
+      const nextStatus: ObjectiveTask['status'] = task.status === 'done' ? 'todo' : 'done';
+
+      return {
+        ...task,
+        status: nextStatus,
+        updatedAt: new Date(),
+      };
+    });
+
+    setTasks(updatedTasks);
+    saveToLocalStorage(STORAGE_KEYS.OBJECTIVE_TASKS, updatedTasks);
   };
 
   const openChatForCategory = () => {
@@ -385,11 +564,194 @@ function GoalCreation({ userProfile }: GoalCreationProps) {
               </div>
             </div>
           )}
+
+          <div className="card">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">4. 実行タスクを管理する</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  大目標を選んで、直近の実行タスクを追加・完了します。
+                </p>
+              </div>
+              <span className="text-sm text-gray-500">AI 提案は後段で追加予定</span>
+            </div>
+
+            {objectives.length === 0 ? (
+              <div className="text-center py-10 text-gray-500 border border-dashed border-gray-200 rounded-lg">
+                <p className="font-medium mb-2">まずは大目標を1件保存してください</p>
+                <p className="text-sm">保存後、このエリアで実行タスクを管理できます。</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    対象の大目標
+                  </label>
+                  <select
+                    value={selectedObjectiveId}
+                    onChange={(event) => setSelectedObjectiveId(event.target.value)}
+                    className="input"
+                  >
+                    {objectives.map((objective) => (
+                      <option key={objective.id} value={objective.id}>
+                        {objective.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {selectedObjective && (
+                  <div className="rounded-lg border border-primary-200 bg-primary-50 p-4">
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                      <div>
+                        <h4 className="font-bold text-primary-900">{selectedObjective.title}</h4>
+                        <p className="text-sm text-primary-800 mt-1">{selectedObjective.description}</p>
+                        <p className="text-xs text-primary-700 mt-2">
+                          期限: {formatDate(selectedObjective.period.endDate)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm text-primary-700">進捗</div>
+                        <div className="text-2xl font-bold text-primary-900">
+                          {selectedObjectiveTaskSummary.percent}%
+                        </div>
+                        <div className="text-xs text-primary-700">
+                          {selectedObjectiveTaskSummary.done} / {selectedObjectiveTaskSummary.total} タスク完了
+                        </div>
+                      </div>
+                    </div>
+                    <div className="w-full bg-primary-100 rounded-full h-2 mt-4">
+                      <div
+                        className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${selectedObjectiveTaskSummary.percent}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <form onSubmit={handleSaveTask} className="space-y-4 border border-gray-200 rounded-lg p-4">
+                  <h4 className="font-bold text-gray-900">実行タスクを追加</h4>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      タスク名 <span className="text-danger-600">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={taskTitle}
+                      onChange={(event) => setTaskTitle(event.target.value)}
+                      className="input"
+                      placeholder="例: 週次レビュー画面の必要項目を書き出す"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      タスク説明
+                    </label>
+                    <textarea
+                      value={taskDescription}
+                      onChange={(event) => setTaskDescription(event.target.value)}
+                      className="input"
+                      rows={2}
+                      placeholder="補足があれば入力"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        優先度
+                      </label>
+                      <select
+                        value={taskPriority}
+                        onChange={(event) => setTaskPriority(event.target.value as ObjectiveTask['priority'])}
+                        className="input"
+                      >
+                        <option value="high">高</option>
+                        <option value="medium">中</option>
+                        <option value="low">低</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        期限
+                      </label>
+                      <input
+                        type="date"
+                        value={taskDueDate}
+                        onChange={(event) => setTaskDueDate(event.target.value)}
+                        className="input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button type="submit" className="btn btn-primary">
+                      タスクを保存
+                    </button>
+                    <button type="button" onClick={resetTaskForm} className="btn btn-secondary">
+                      クリア
+                    </button>
+                  </div>
+                </form>
+
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-bold text-gray-900">実行タスク一覧</h4>
+                    <p className="text-sm text-gray-500">完了操作で進捗に反映されます</p>
+                  </div>
+
+                  {selectedObjectiveTasks.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500 border border-dashed border-gray-200 rounded-lg">
+                      <p className="font-medium mb-2">まだ実行タスクがありません</p>
+                      <p className="text-sm">まずは直近でやるタスクを1件追加してください。</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {selectedObjectiveTasks.map((task) => (
+                        <div key={task.id} className="border border-gray-200 rounded-lg p-4">
+                          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2 mb-2">
+                                <h5 className="font-semibold text-gray-900">{task.title}</h5>
+                                <span className={`px-2 py-1 rounded-full text-xs ${TASK_STATUS_CLASS[task.status]}`}>
+                                  {TASK_STATUS_LABELS[task.status]}
+                                </span>
+                                <span className="px-2 py-1 rounded-full text-xs bg-gray-100 text-gray-700">
+                                  優先度: {TASK_PRIORITY_LABELS[task.priority]}
+                                </span>
+                              </div>
+                              {task.description && (
+                                <p className="text-sm text-gray-600 mb-2">{task.description}</p>
+                              )}
+                              <div className="text-xs text-gray-500 space-x-3">
+                                <span>期限: {formatDate(task.dueDate)}</span>
+                                <span>更新: {formatDate(task.updatedAt)}</span>
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleToggleTaskStatus(task.id)}
+                              className={`btn ${task.status === 'done' ? 'btn-secondary' : 'btn-primary'}`}
+                            >
+                              {task.status === 'done' ? '未完了に戻す' : '完了にする'}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="lg:col-span-1">
           <div className="card sticky top-4">
-            <h3 className="text-xl font-bold text-gray-900 mb-4">目標詳細</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-4">3. 大目標を保存する</h3>
             <form onSubmit={handleSaveGoal} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

@@ -11,6 +11,16 @@ export type ObjectiveStatus = 'draft' | 'active' | 'completed' | 'cancelled';
 export type ObjectivePriority = 'high' | 'medium' | 'low';
 
 /**
+ * 実行タスクのステータス
+ */
+export type ObjectiveTaskStatus = 'todo' | 'doing' | 'done' | 'skipped';
+
+/**
+ * 実行タスクの重要度
+ */
+export type ObjectiveTaskPriority = 'high' | 'medium' | 'low';
+
+/**
  * 評価スコア（5段階）
  */
 export type EvaluationScore = 1 | 2 | 3 | 4 | 5;
@@ -48,6 +58,32 @@ export interface Objective {
   weight: number;
   /** 主要成果（Key Results） */
   keyResults: KeyResult[];
+  /** 作成日 */
+  createdAt: Date;
+  /** 更新日 */
+  updatedAt: Date;
+}
+
+/**
+ * Objective配下の実行タスク
+ */
+export interface ObjectiveTask {
+  /** タスクID */
+  id: string;
+  /** 紐づく目標ID */
+  objectiveId: string;
+  /** タスクタイトル */
+  title: string;
+  /** タスク説明 */
+  description?: string;
+  /** ステータス */
+  status: ObjectiveTaskStatus;
+  /** 重要度 */
+  priority: ObjectiveTaskPriority;
+  /** 並び順 */
+  order: number;
+  /** 期限 */
+  dueDate?: Date;
   /** 作成日 */
   createdAt: Date;
   /** 更新日 */

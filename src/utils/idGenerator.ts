@@ -26,6 +26,13 @@ export const generateObjectiveId = (): string => {
 };
 
 /**
+ * 実行タスクIDを生成
+ */
+export const generateObjectiveTaskId = (): string => {
+  return generateIdWithPrefix('task');
+};
+
+/**
  * 主要成果IDを生成
  */
 export const generateKeyResultId = (): string => {

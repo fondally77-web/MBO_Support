@@ -7,9 +7,22 @@ import GoalCreation from './components/GoalCreation';
 import ProposalHistory from './components/ProposalHistory';
 import Settings from './components/Settings';
 import { UserProfile } from './types';
-import { loadFromLocalStorage, saveToLocalStorage, STORAGE_KEYS } from './utils/localStorage';
+import {
+  loadFromLocalStorage,
+  reviveDates,
+  saveToLocalStorage,
+  STORAGE_KEYS,
+} from './utils/localStorage';
 
 export type Page = 'dashboard' | 'analyzer' | 'goal-creation' | 'proposal-history' | 'settings';
+
+const reviveUserProfile = (profile: UserProfile | null): UserProfile | null => {
+  if (!profile) {
+    return null;
+  }
+
+  return reviveDates(profile, ['gradeAcquiredDate', 'createdAt', 'updatedAt']);
+};
 
 function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -20,7 +33,7 @@ function App() {
   useEffect(() => {
     const loadProfile = () => {
       const savedProfile = loadFromLocalStorage<UserProfile>(STORAGE_KEYS.USER_PROFILE);
-      setUserProfile(savedProfile);
+      setUserProfile(reviveUserProfile(savedProfile));
       setIsLoading(false);
     };
 
@@ -36,7 +49,7 @@ function App() {
   // プロフィール更新ハンドラ（設定画面から）
   const handleProfileUpdate = () => {
     const savedProfile = loadFromLocalStorage<UserProfile>(STORAGE_KEYS.USER_PROFILE);
-    setUserProfile(savedProfile);
+    setUserProfile(reviveUserProfile(savedProfile));
   };
 
   if (isLoading) {

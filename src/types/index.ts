@@ -11,9 +11,12 @@ export type {
 export type {
   ObjectiveStatus,
   ObjectivePriority,
+  ObjectiveTaskStatus,
+  ObjectiveTaskPriority,
   EvaluationScore,
   ObjectivePeriod,
   Objective,
+  ObjectiveTask,
   KeyResult,
   Evaluation,
   Position,
