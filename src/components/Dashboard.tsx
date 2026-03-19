@@ -20,6 +20,13 @@ const PRIORITY_LABELS: Record<Objective['priority'], string> = {
   low: '低',
 };
 
+const TASK_STATUS_LABELS: Record<ObjectiveTask['status'], string> = {
+  todo: '未着手',
+  doing: '進行中',
+  done: '完了',
+  skipped: '見送り',
+};
+
 const statusColorClass: Record<Objective['status'], string> = {
   draft: 'bg-gray-100 text-gray-700',
   active: 'bg-primary-100 text-primary-700',
@@ -31,6 +38,13 @@ const priorityColorClass: Record<Objective['priority'], string> = {
   high: 'bg-red-100 text-red-700',
   medium: 'bg-yellow-100 text-yellow-700',
   low: 'bg-gray-100 text-gray-700',
+};
+
+const taskStatusColorClass: Record<ObjectiveTask['status'], string> = {
+  todo: 'bg-gray-100 text-gray-700',
+  doing: 'bg-primary-100 text-primary-700',
+  done: 'bg-success-100 text-success-700',
+  skipped: 'bg-yellow-100 text-yellow-700',
 };
 
 const formatDate = (date?: Date) => {
@@ -115,6 +129,51 @@ function Dashboard({ userProfile }: DashboardProps) {
     [objectives]
   );
 
+  const nextTasks = useMemo(() => {
+    const now = new Date();
+
+    return tasks
+      .filter((task) => task.status !== 'done' && task.status !== 'skipped')
+      .sort((a, b) => {
+        const aHasDueDate = a.dueDate && !Number.isNaN(a.dueDate.getTime());
+        const bHasDueDate = b.dueDate && !Number.isNaN(b.dueDate.getTime());
+
+        if (aHasDueDate && bHasDueDate) {
+          return a.dueDate!.getTime() - b.dueDate!.getTime();
+        }
+
+        if (aHasDueDate) {
+          return -1;
+        }
+
+        if (bHasDueDate) {
+          return 1;
+        }
+
+        const aIsDoing = a.status === 'doing' ? 0 : 1;
+        const bIsDoing = b.status === 'doing' ? 0 : 1;
+        if (aIsDoing !== bIsDoing) {
+          return aIsDoing - bIsDoing;
+        }
+
+        const aIsOverdue = a.dueDate && a.dueDate < now ? 0 : 1;
+        const bIsOverdue = b.dueDate && b.dueDate < now ? 0 : 1;
+        if (aIsOverdue !== bIsOverdue) {
+          return aIsOverdue - bIsOverdue;
+        }
+
+        return a.order - b.order;
+      })
+      .slice(0, 3);
+  }, [tasks]);
+
+  const objectiveTitleById = useMemo(() => {
+    return objectives.reduce<Record<string, string>>((acc, objective) => {
+      acc[objective.id] = objective.title;
+      return acc;
+    }, {});
+  }, [objectives]);
+
   return (
     <div className="space-y-6">
       <ProfileCard userProfile={userProfile} />
@@ -195,6 +254,44 @@ function Dashboard({ userProfile }: DashboardProps) {
                 );
               })}
             </div>
+          </div>
+        )}
+      </div>
+
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold text-gray-900">次にやるタスク</h3>
+          <p className="text-sm text-gray-500">未完了の期限近い task を優先表示</p>
+        </div>
+
+        {nextTasks.length === 0 ? (
+          <div className="text-center py-10 text-gray-500 border border-dashed border-gray-200 rounded-lg">
+            <p className="font-medium mb-2">表示できる task がありません</p>
+            <p className="text-sm">進行中の大目標に task を追加すると、ここに表示されます。</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {nextTasks.map((task) => (
+              <div key={task.id} className="border border-gray-200 rounded-lg p-4">
+                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <h4 className="font-semibold text-gray-900">{task.title}</h4>
+                      <span className={`px-2 py-1 rounded-full text-xs ${taskStatusColorClass[task.status]}`}>
+                        {TASK_STATUS_LABELS[task.status]}
+                      </span>
+                    </div>
+                    {task.description && (
+                      <p className="text-sm text-gray-600 mb-2">{task.description}</p>
+                    )}
+                    <div className="text-sm text-gray-500 space-y-1">
+                      <p>大目標: {objectiveTitleById[task.objectiveId] ?? '未設定'}</p>
+                      <p>期限: {formatDate(task.dueDate)}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
