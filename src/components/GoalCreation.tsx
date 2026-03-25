@@ -372,13 +372,11 @@ function GoalCreation({ userProfile }: GoalCreationProps) {
     }
   };
 
-  const handleToggleTaskStatus = (taskId: string) => {
+  const handleTaskStatusChange = (taskId: string, nextStatus: ObjectiveTask['status']) => {
     const updatedTasks: ObjectiveTask[] = tasks.map((task) => {
       if (task.id !== taskId) {
         return task;
       }
-
-      const nextStatus: ObjectiveTask['status'] = task.status === 'done' ? 'todo' : 'done';
 
       return {
         ...task,
@@ -731,13 +729,23 @@ function GoalCreation({ userProfile }: GoalCreationProps) {
                               </div>
                             </div>
 
-                            <button
-                              type="button"
-                              onClick={() => handleToggleTaskStatus(task.id)}
-                              className={`btn ${task.status === 'done' ? 'btn-secondary' : 'btn-primary'}`}
-                            >
-                              {task.status === 'done' ? '未完了に戻す' : '完了にする'}
-                            </button>
+                            <div className="flex flex-col gap-2 min-w-[160px]">
+                              <label className="text-xs font-medium text-gray-600">状態変更</label>
+                              <select
+                                value={task.status}
+                                onChange={(event) =>
+                                  handleTaskStatusChange(
+                                    task.id,
+                                    event.target.value as ObjectiveTask['status']
+                                  )
+                                }
+                                className="input text-sm"
+                              >
+                                <option value="todo">未着手</option>
+                                <option value="doing">今やる</option>
+                                <option value="done">完了</option>
+                              </select>
+                            </div>
                           </div>
                         </div>
                       ))}
